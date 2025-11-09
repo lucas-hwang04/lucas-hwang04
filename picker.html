@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Random Meal Picker · Pro</title>
+  <style>
+    :root{
+      --bg:#060816; --panel:#0b1022; --text:#eef2ff; --muted:#b6c2e1;
+      --chip:#121939; --chip-border:#263157; --ring: 0 0 0 3px rgba(255,255,255,.06);
+      --accent:#06b6d4; --accent-2:#a78bfa; --success:#22c55e; --danger:#ef4444; --warning:#f59e0b;
+    }
+    body{
+      margin:0; font:500 16px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto;
+      color:var(--text);
+      background:
+        radial-gradient(80rem 50rem at 10% -20%, rgba(6,182,212,.18), transparent 55%),
+        radial-gradient(80rem 50rem at 120% 10%, rgba(167,139,250,.18), transparent 55%),
+        radial-gradient(50rem 40rem at 50% 110%, rgba(245,158,11,.12), transparent 55%),
+        var(--bg);
+      min-height:100svh; overflow-x:hidden;
+    }
+    .container{ max-width:1100px; margin:0 auto; padding:28px; display:grid; gap:22px; }
+    header{ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:14px; }
+    .brand{ display:flex; gap:12px; align-items:center; }
+    .logo{ width:38px; height:38px; border-radius:10px; background: conic-gradient(from 210deg, var(--accent), var(--accent-2)); display:grid; place-items:center; box-shadow:0 8px 30px rgba(6,182,212,.35); }
+    .logo span{ font-size:20px }
+    .title{ font-size:clamp(1.4rem,2.2vw + .6rem,2.2rem); font-weight:800; }
+    .subtitle{ color:var(--muted); font-size:.95rem }
+    .toolbar{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+
+    .grid{ display:grid; grid-template-columns:1.15fr .85fr; gap:22px; }
+    @media (max-width: 980px){ .grid{ grid-template-columns:1fr; } }
+
+    .card{
+      position:relative; background:linear-gradient(180deg, rgba(255,255,255,.03), transparent 70%), var(--panel);
+      border:1px solid rgba(182,194,225,.16); border-radius:20px; padding:18px; box-shadow:0 24px 70px rgba(0,0,0,.35); overflow:hidden;
+    }
+    .card::before{ content:""; position:absolute; inset:0 0 auto 0; height:3px; background:linear-gradient(90deg, var(--accent), var(--accent-2)); opacity:.9; }
+    .section-title{ display:flex; align-items:center; gap:10px; font-weight:800; margin-bottom:10px; }
+    .section-title .dot{ width:10px; height:10px; border-radius:999px; background:linear-gradient(90deg, var(--accent), var(--accent-2)); box-shadow:0 0 18px rgba(6,182,212,.6); }
+
+    textarea, input[type="file"]{
+      width:100%; color:var(--text); background:#0a1030; border:1px solid var(--chip-border); border-radius:14px; padding:12px 14px; outline:none;
+      transition:border .2s ease, box-shadow .2s ease; min-height:150px; resize:vertical;
+    }
+    textarea:focus{ border-color:var(--accent); box-shadow:var(--ring); }
+
+    .row{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+
+    button{ appearance:none; border:none; cursor:pointer; font-weight:800; color:#0b1220; padding:10px 14px; border-radius:12px;
+      background:linear-gradient(90deg, var(--accent), var(--accent-2)); transition: transform .06s ease, filter .2s ease, box-shadow .2s ease;
+      box-shadow:0 10px 30px rgba(6,182,212,.3); }
+    button:hover{ filter:brightness(1.06) } button:active{ transform:translateY(1px) }
+    button.secondary{ background:#0d1433; color:var(--text); border:1px solid var(--chip-border); box-shadow:none; }
+    button.ghost{ background:transparent; color:var(--text); border:1px dashed var(--chip-border); box-shadow:none; }
+    button[disabled]{ opacity:.6; cursor:not-allowed }
+
+    .palettes{ display:flex; gap:8px; flex-wrap:wrap; }
+    .palette{ width:36px; height:28px; border-radius:10px; border:1px solid rgba(255,255,255,.15); cursor:pointer; position:relative; overflow:hidden; }
+    .palette[data-name]::after{ content:attr(data-name); position:absolute; inset:auto 6px 4px auto; color:#fff; font-size:.65rem; opacity:.8; }
+
+    .chips{ display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+    .chip{ display:inline-flex; align-items:center; gap:8px; padding:8px 10px; border-radius:999px; border:1px solid var(--chip-border); background:var(--chip); font-size:.92rem; }
+    .chip .x{ background:transparent; border:none; color:var(--muted); cursor:pointer; font-weight:900; padding:0 2px; }
+    .chip .x:hover{ color:#fff }
+
+    .controls{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between; margin-top:12px; }
+    .left-controls{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+
+    .count-toggle{ background:#0a1030; border:1px solid var(--chip-border); border-radius:999px; padding:4px; display:flex; gap:4px; }
+    .count-toggle input{ display:none }
+    .count-toggle label{ padding:8px 12px; border-radius:999px; color:var(--muted); cursor:pointer; font-weight:800; user-select:none; display:inline-block; letter-spacing:.2px }
+    .count-toggle input:checked + label{ background:linear-gradient(90deg, var(--accent), var(--accent-2)); color:#0b1220; }
+
+    .reels{ display:grid; grid-template-columns:repeat(3, 1fr); gap:14px; margin-top:12px; }
+    @media(max-width:640px){ .reels{ grid-template-columns:1fr; } }
+    .reel{ position:relative; height:90px; border-radius:16px; overflow:hidden; border:1px solid var(--chip-border); background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)); display:flex; align-items:center; justify-content:center; padding:0 12px; }
+    .reel .item{ font-size:1.25rem; font-weight:900; text-align:center; white-space:nowrap; text-overflow:ellipsis; overflow:hidden; width:100%; letter-spacing:.2px }
+    .reel::after{ content:""; position:absolute; inset:0; pointer-events:none; box-shadow: inset 0 18px 26px -20px rgba(0,0,0,.65), inset 0 -18px 26px -20px rgba(0,0,0,.65); }
+
+    .results{ margin-top:14px; display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+    .badge{ padding:8px 12px; border-radius:999px; font-weight:900; background:linear-gradient(90deg, var(--success), var(--accent), var(--accent-2)); color:#0b1220; box-shadow:0 6px 20px rgba(34,197,94,.25) }
+
+    .toast{ position:fixed; left:50%; transform:translateX(-50%); bottom:22px; background:#0a1030; color:var(--text); border:1px solid var(--chip-border); padding:10px 14px; border-radius:12px; opacity:0; pointer-events:none; transition:opacity .25s ease, transform .25s ease; z-index:60 }
+    .toast.show{ opacity:1; transform:translate(-50%, -4px); }
+
+    .footer{ color:var(--muted); font-size:.88rem; text-align:center; margin:10px 0 30px }
+
+    #confetti{ position:fixed; inset:0; pointer-events:none; z-index:50 }
+  </style>
+</head>
+<body>
+  <canvas id="confetti"></canvas>
+  <div class="container">
+    <header>
+      <div class="brand">
+        <div class="logo" aria-hidden="true"><span>🍽️</span></div>
+        <div>
+          <div class="title">Random Meal Picker <span style="opacity:.7;font-weight:700">Pro</span></div>
+          <div class="subtitle">Add dishes → choose <strong>2 or 3</strong> → spin. Your list is saved locally.</div>
+        </div>
+      </div>
+      <div class="toolbar">
+        <button class="ghost" id="btn-sample" title="Load sample dishes">Load samples</button>
+        <label class="secondary" for="file">
+          <input id="file" type="file" accept=".txt,.csv" style="display:none"/>
+          Import .txt/.csv
+        </label>
+        <button class="secondary" id="btn-export" title="Export your list as .txt">Export</button>
+        <button class="secondary" id="btn-clear" title="Clear all">Clear all</button>
+      </div>
+    </header>
+
+    <div class="card" style="padding:12px 16px">
+      <div class="row" style="justify-content:space-between; gap:12px">
+        <div class="row" style="align-items:center; gap:12px">
+          <span style="color:var(--muted);font-weight:700">Theme</span>
+          <div class="palettes" id="palettes" aria-label="Theme palettes">
+            <div class="palette" data-name="A" style="background:linear-gradient(90deg,#06b6d4,#a78bfa)" data-accent="#06b6d4" data-accent2="#a78bfa"></div>
+            <div class="palette" data-name="B" style="background:linear-gradient(90deg,#22c55e,#06b6d4)" data-accent="#22c55e" data-accent2="#06b6d4"></div>
+            <div class="palette" data-name="C" style="background:linear-gradient(90deg,#f59e0b,#ef4444)" data-accent="#f59e0b" data-accent2="#ef4444"></div>
+            <div class="palette" data-name="D" style="background:linear-gradient(90deg,#ec4899,#a78bfa)" data-accent="#ec4899" data-accent2="#a78bfa"></div>
+            <div class="palette" data-name="E" style="background:linear-gradient(90deg,#38bdf8,#f472b6)" data-accent="#38bdf8" data-accent2="#f472b6"></div>
+          </div>
+        </div>
+        <small style="color:var(--muted)"><span id="count">0</span> dishes</small>
+      </div>
+    </div>
+
+    <div class="grid">
+      <section class="card">
+        <div class="section-title"><span class="dot"></span> Add dishes</div>
+        <textarea id="input" placeholder="One dish per line (e.g.
+Garlic chicken
+Beef pho
+Mapo tofu)"></textarea>
+        <div class="controls">
+          <div class="left-controls">
+            <button id="btn-add">Add to list</button>
+            <button class="secondary" id="btn-replace" title="Replace current list">Replace list</button>
+          </div>
+        </div>
+        <div class="chips" id="chips"></div>
+      </section>
+
+      <section class="card">
+        <div class="section-title"><span class="dot"></span> Spin</div>
+        <div class="controls">
+          <div class="left-controls">
+            <div class="count-toggle" role="radiogroup" aria-label="How many meals to pick">
+              <input type="radio" name="pick" id="pick2" value="2" checked>
+              <label for="pick2">Pick 2</label>
+              <input type="radio" name="pick" id="pick3" value="3">
+              <label for="pick3">Pick 3</label>
+            </div>
+          </div>
+          <div class="row">
+            <button id="btn-shuffle" class="secondary" title="Shuffle preview">Shuffle</button>
+            <button id="btn-spin" title="Spin the reels">🎰 Spin</button>
+          </div>
+        </div>
+
+        <div class="reels" id="reels">
+          <div class="reel"><div class="item" aria-live="polite">—</div></div>
+          <div class="reel"><div class="item" aria-live="polite">—</div></div>
+          <div class="reel"><div class="item" aria-live="polite">—</div></div>
+        </div>
+
+        <div class="results" id="results"></div>
+      </section>
+    </div>
+
+    <div class="footer">Tip: Click the × on any chip to remove it. Your list auto-saves to this browser. Import .txt/.csv to add many dishes at once.</div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const $ = sel => document.querySelector(sel);
+    const $$ = sel => Array.from(document.querySelectorAll(sel));
+    const STORAGE_KEY = 'meal-picker:list:v2';
+    const THEME_KEY = 'meal-picker:theme:v1';
+    const state = { list: [], spinning:false };
+
+    function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state.list)); }
+    function load(){ try{ const x = JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]'); if(Array.isArray(x)) state.list = x.filter(Boolean); }catch(_){} }
+    function showToast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 1900); }
+    function parseTextarea(){ const raw = $('#input').value.trim(); if(!raw) return []; return raw.split(/\r?\n|,/).map(s=>s.trim()).filter(Boolean); }
+
+    function renderChips(){
+      const box = $('#chips'); box.innerHTML = '';
+      state.list.forEach((name, idx)=>{
+        const el = document.createElement('span'); el.className = 'chip';
+        el.innerHTML = `<span>${escapeHtml(name)}</span> <button class="x" title="Remove" aria-label="Remove ${escapeHtml(name)}">×</button>`;
+        el.querySelector('.x').addEventListener('click', ()=>{ state.list.splice(idx,1); save(); renderChips(); updateCount(); });
+        box.appendChild(el);
+      });
+      updateCount();
+    }
+    function updateCount(){ $('#count').textContent = state.list.length; }
+
+    function addItems(items, mode='append'){
+      const normalized = items.map(s => s.replace(/\s+/g,' ').trim()).filter(Boolean);
+      if(!normalized.length){ showToast('No dishes to add'); return; }
+      if(mode==='replace') state.list = [];
+      const lower = new Set(state.list.map(s=>s.toLowerCase()));
+      let added = 0;
+      for(const it of normalized){ if(!lower.has(it.toLowerCase())) { state.list.push(it); lower.add(it.toLowerCase()); added++; } }
+      save(); renderChips(); showToast(`${added} added`);
+    }
+    function chooseUnique(n){
+      const pool = [...state.list]; if(pool.length < n) return null;
+      for(let i=0; i<n; i++){ const j = i + Math.floor(Math.random() * (pool.length - i)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+      return pool.slice(0, n);
+    }
+
+    function spin(){
+      if(state.spinning) return;
+      const n = Number(document.querySelector('input[name="pick"]:checked').value);
+      if(state.list.length < n){ showToast(`Need at least ${n} dishes`); return; }
+      state.spinning = true; $('#btn-spin').setAttribute('disabled', '');
+      const reels = $$('#reels .reel');
+      reels.forEach((r, i)=>{ r.style.display = (n===2 && i===2) ? 'none' : 'flex'; });
+      const picks = chooseUnique(n);
+      if(!picks){ state.spinning=false; $('#btn-spin').removeAttribute('disabled'); return; }
+
+      const durations = [1200,1600,2000];
+      reels.forEach((reel, idx)=>{
+        if(n===2 && idx===2) return;
+        const target = picks[idx];
+        const item = reel.querySelector('.item');
+        let t = 0, interval = 42, total = durations[idx];
+        item.textContent = randomFrom(state.list);
+        const id = setInterval(()=>{
+          item.textContent = randomFrom(state.list);
+          t += interval;
+          if(t > total*0.6) interval = 80;
+          if(t > total*0.82) interval = 145;
+        }, interval);
+        setTimeout(()=>{
+          clearInterval(id);
+          item.textContent = target;
+          reel.animate([
+            { boxShadow: '0 0 0px 0 rgba(34,197,94,0.0)' },
+            { boxShadow: '0 0 24px 6px rgba(34,197,94,0.45)' },
+            { boxShadow: '0 0 0px 0 rgba(34,197,94,0.0)' },
+          ], { duration: 520, easing:'ease-out' });
+        }, durations[idx]);
+      });
+
+      setTimeout(()=>{
+        state.spinning=false; $('#btn-spin').removeAttribute('disabled');
+        showResults(picks); confetti();
+      }, Math.max(...durations) + 120);
+    }
+
+    function showResults(picks){
+      const box = $('#results'); box.innerHTML = '';
+      picks.forEach(p=>{ const b = document.createElement('span'); b.className='badge'; b.textContent = `🍳 ${p}`; box.appendChild(b); });
+    }
+
+    function randomFrom(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+    function escapeHtml(str){ return str.replace(/[&<>\"']/g, s=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[s])); }
+
+    // Theme palettes
+    function loadTheme(){ try{ const t = JSON.parse(localStorage.getItem(THEME_KEY)||'null'); if(t && t.accent && t.accent2){ applyTheme(t.accent, t.accent2); } }catch(_){} }
+    function applyTheme(a,b){ document.documentElement.style.setProperty('--accent', a); document.documentElement.style.setProperty('--accent-2', b); localStorage.setItem(THEME_KEY, JSON.stringify({accent:a, accent2:b})); }
+
+    // Import/Export
+    function exportTxt(){
+      const blob = new Blob([state.list.join('\\n')], {type:'text/plain;charset=utf-8'});
+      const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'meal-list.txt';
+      document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    }
+    function importFile(f){
+      if(!f) return;
+      const reader = new FileReader();
+      reader.onload = e=>{
+        const text = String(e.target.result || '');
+        const items = text.split(/\\r?\\n|,/).map(s=>s.trim()).filter(Boolean);
+        addItems(items,'append');
+      };
+      reader.readAsText(f);
+    }
+
+    function shufflePreview(){
+      const reels = $$('#reels .reel .item');
+      reels.forEach(i=> i.textContent = randomFrom(state.list) || '—');
+    }
+
+    // Confetti
+    function confetti(){
+      const canvas = document.getElementById('confetti'); const ctx = canvas.getContext('2d');
+      const W = canvas.width = window.innerWidth; const H = canvas.height = window.innerHeight; const N = 120;
+      const parts = Array.from({length:N}, ()=>({ x: Math.random()*W, y: -10 - Math.random()*H*0.2, r: 4 + Math.random()*6, vx: -1 + Math.random()*2, vy: 2 + Math.random()*3, rot: Math.random()*Math.PI, vr: (-0.1 + Math.random()*0.2), color: pickColor() }));
+      let t0 = performance.now();
+      function draw(now){
+        t0 = now; ctx.clearRect(0,0,W,H);
+        parts.forEach(p=>{ p.x += p.vx; p.y += p.vy; p.rot += p.vr; ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot); ctx.fillStyle = p.color; ctx.fillRect(-p.r/2,-p.r/2,p.r,p.r); ctx.restore(); });
+        if(parts[0].y < H + 30){ requestAnimationFrame(draw); } else { ctx.clearRect(0,0,W,H); }
+      }
+      function pickColor(){
+        const a = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+        const b = getComputedStyle(document.documentElement).getPropertyValue('--accent-2').trim();
+        const c = '#22c55e';
+        return [a,b,c,'#f59e0b','#38bdf8','#f472b6'][Math.floor(Math.random()*6)];
+      }
+      requestAnimationFrame(draw);
+    }
+
+    // Samples
+    const SAMPLE = ['Garlic Butter Chicken','Beef Pho','Mapo Tofu','Pad Thai','Teriyaki Salmon','Kimchi Fried Rice','Grilled Pork Chops','Veggie Stir-fry','Bún Chả','Curry Laksa','Spaghetti Bolognese','Chicken Katsu','Mala Hotpot','Bibimbap','Fried Dumplings','Tacos','Shakshuka','Miso Udon','Cauliflower Curry','Beef Stir-fry'];
+
+    // Bind UI
+    document.getElementById('btn-add').addEventListener('click', ()=>{ addItems(parseTextarea(),'append'); });
+    document.getElementById('btn-replace').addEventListener('click', ()=>{ addItems(parseTextarea(),'replace'); });
+    document.getElementById('btn-sample').addEventListener('click', ()=>{ addItems(SAMPLE,'append'); });
+    document.getElementById('btn-clear').addEventListener('click', ()=>{ state.list=[]; save(); renderChips(); updateCount(); showToast('Cleared'); document.getElementById('results').innerHTML=''; shufflePreview(); });
+    document.getElementById('btn-spin').addEventListener('click', spin);
+    document.getElementById('btn-export').addEventListener('click', exportTxt);
+    document.getElementById('file').addEventListener('change', (e)=> importFile(e.target.files[0]));
+    document.getElementById('btn-shuffle').addEventListener('click', shufflePreview);
+    document.getElementById('palettes').addEventListener('click', (e)=>{ const el = e.target.closest('.palette'); if(!el) return; applyTheme(el.dataset.accent, el.dataset.accent2); showToast('Theme applied'); });
+
+    // Init
+    load(); renderChips(); loadTheme(); shufflePreview();
+    window.addEventListener('resize', ()=>{ const c = document.getElementById('confetti'); c.width = innerWidth; c.height = innerHeight; });
+  </script>
+</body>
+</html>
